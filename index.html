@@ -1,677 +1,500 @@
-<!DOCTYPE html>
-<html lang="ru">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Невидимые Опоры — Нумерология и Астрология | Upgrade24k</title>
-    <meta name="description" content="Нумерологический и астрологический анализ как инструменты самопознания. Узнайте о своих кармических задачах, талантах и предназначении.">
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;1,300;1,400&family=Montserrat:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css">
-    <link rel="stylesheet" href="css/style.css">
-</head>
-<body>
+/* ===========================
+   MAIN.JS — Invisible Supports
+=========================== */
 
-    <!-- Particles Background -->
-    <div class="particles" id="particles"></div>
+document.addEventListener('DOMContentLoaded', () => {
 
-    <!-- Header / Nav -->
-    <header class="header" id="header">
-        <nav class="nav container">
-            <a href="#" class="nav__logo">
-                <span class="logo-symbol">✦</span>
-                <span class="logo-text">Невидимые Опоры</span>
-                <span class="logo-sub">Upgrade24k</span>
-            </a>
-            <ul class="nav__menu" id="navMenu">
-                <li><a href="#about" class="nav__link">Обо мне</a></li>
-                <li><a href="#services" class="nav__link">Услуги</a></li>
-                <li><a href="#why" class="nav__link">Зачем</a></li>
-                <li><a href="#reviews" class="nav__link">Отзывы</a></li>
-                <li><a href="#contact" class="nav__link nav__cta">Записаться</a></li>
-            </ul>
-            <button class="nav__burger" id="navBurger" aria-label="Меню">
-                <span></span><span></span><span></span>
+    // ========================
+    // FAVICON — 4-point star
+    // ========================
+    (function generateFavicon() {
+        const canvas = document.createElement('canvas');
+        canvas.width = 64;
+        canvas.height = 64;
+        const ctx = canvas.getContext('2d');
+
+        // Background
+        ctx.fillStyle = '#0D0D14';
+        ctx.fillRect(0, 0, 64, 64);
+
+        // Draw 4-point star ✦
+        ctx.save();
+        ctx.translate(32, 32);
+        ctx.fillStyle = '#C9A84C';
+
+        function draw4Star(cx, cy, r1, r2) {
+            ctx.beginPath();
+            for (let i = 0; i < 8; i++) {
+                const angle = (i * Math.PI) / 4 - Math.PI / 2;
+                const r = i % 2 === 0 ? r1 : r2;
+                const x = Math.cos(angle) * r;
+                const y = Math.sin(angle) * r;
+                i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+            }
+            ctx.closePath();
+            ctx.fill();
+        }
+
+        draw4Star(0, 0, 26, 8);
+
+        // Glow center
+        const grad = ctx.createRadialGradient(0, 0, 0, 0, 0, 14);
+        grad.addColorStop(0, 'rgba(232,201,106,0.5)');
+        grad.addColorStop(1, 'rgba(232,201,106,0)');
+        ctx.fillStyle = grad;
+        ctx.beginPath();
+        ctx.arc(0, 0, 14, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.restore();
+
+        const link = document.createElement('link');
+        link.rel = 'icon';
+        link.type = 'image/png';
+        link.href = canvas.toDataURL('image/png');
+        document.head.appendChild(link);
+    })();
+
+    // ========================
+    // STARFIELD (Hero canvas)
+    // ========================
+    const starCanvas = document.getElementById('starfield');
+    if (starCanvas) {
+        const sCtx = starCanvas.getContext('2d');
+        let stars = [];
+        let raf;
+
+        function resizeStarCanvas() {
+            starCanvas.width = starCanvas.offsetWidth;
+            starCanvas.height = starCanvas.offsetHeight;
+        }
+
+        function initStars() {
+            stars = [];
+            const count = Math.floor((starCanvas.width * starCanvas.height) / 5000);
+            for (let i = 0; i < count; i++) {
+                stars.push({
+                    x: Math.random() * starCanvas.width,
+                    y: Math.random() * starCanvas.height,
+                    r: Math.random() * 1.2 + 0.2,
+                    alpha: Math.random(),
+                    speed: Math.random() * 0.004 + 0.002,
+                    phase: Math.random() * Math.PI * 2
+                });
+            }
+        }
+
+        function drawStars(time) {
+            sCtx.clearRect(0, 0, starCanvas.width, starCanvas.height);
+            stars.forEach(s => {
+                const a = (Math.sin(time * s.speed + s.phase) + 1) / 2;
+                const opacity = 0.08 + a * 0.45;
+                sCtx.beginPath();
+                sCtx.arc(s.x, s.y, s.r, 0, Math.PI * 2);
+                sCtx.fillStyle = `rgba(220, 210, 190, ${opacity})`;
+                sCtx.fill();
+            });
+            raf = requestAnimationFrame(drawStars);
+        }
+
+        resizeStarCanvas();
+        initStars();
+        raf = requestAnimationFrame(drawStars);
+
+        window.addEventListener('resize', () => {
+            resizeStarCanvas();
+            initStars();
+        });
+    }
+
+    // ========================
+    // PARTICLES
+    // ========================
+    const particlesContainer = document.getElementById('particles');
+    const particleCount = 30;
+
+    for (let i = 0; i < particleCount; i++) {
+        createParticle();
+    }
+
+    function createParticle() {
+        const p = document.createElement('div');
+        p.classList.add('particle');
+
+        const size = Math.random() * 3 + 1;
+        const left = Math.random() * 100;
+        const duration = Math.random() * 20 + 15;
+        const delay = Math.random() * 15;
+        const opacity = Math.random() * 0.4 + 0.1;
+
+        p.style.cssText = `
+            width: ${size}px;
+            height: ${size}px;
+            left: ${left}%;
+            animation-duration: ${duration}s;
+            animation-delay: ${delay}s;
+            opacity: ${opacity};
+        `;
+
+        particlesContainer.appendChild(p);
+    }
+
+    // ========================
+    // HEADER SCROLL
+    // ========================
+    const header = document.getElementById('header');
+
+    function updateHeader() {
+        if (window.scrollY > 60) {
+            header.classList.add('scrolled');
+        } else {
+            header.classList.remove('scrolled');
+        }
+    }
+
+    window.addEventListener('scroll', updateHeader, { passive: true });
+    updateHeader();
+
+    // ========================
+    // BURGER MENU
+    // ========================
+    const burger = document.getElementById('navBurger');
+    const navMenu = document.getElementById('navMenu');
+
+    burger.addEventListener('click', () => {
+        const isOpen = navMenu.classList.toggle('open');
+        burger.classList.toggle('open', isOpen);
+        document.body.style.overflow = isOpen ? 'hidden' : '';
+    });
+
+    // Close menu on link click
+    navMenu.querySelectorAll('.nav__link').forEach(link => {
+        link.addEventListener('click', () => {
+            navMenu.classList.remove('open');
+            burger.classList.remove('open');
+            document.body.style.overflow = '';
+        });
+    });
+
+    // Close on outside click
+    document.addEventListener('click', (e) => {
+        if (!navMenu.contains(e.target) && !burger.contains(e.target)) {
+            navMenu.classList.remove('open');
+            burger.classList.remove('open');
+            document.body.style.overflow = '';
+        }
+    });
+
+    // ========================
+    // ACTIVE NAV LINK
+    // ========================
+    const sections = document.querySelectorAll('section[id]');
+    const navLinks = document.querySelectorAll('.nav__link:not(.nav__cta)');
+
+    function updateActiveLink() {
+        const scrollY = window.scrollY + 100;
+
+        sections.forEach(section => {
+            const top = section.offsetTop;
+            const height = section.offsetHeight;
+            const id = section.getAttribute('id');
+
+            if (scrollY >= top && scrollY < top + height) {
+                navLinks.forEach(link => {
+                    link.classList.remove('active');
+                    if (link.getAttribute('href') === `#${id}`) {
+                        link.classList.add('active');
+                    }
+                });
+            }
+        });
+    }
+
+    window.addEventListener('scroll', updateActiveLink, { passive: true });
+
+    // ========================
+    // AOS — Animate on Scroll
+    // ========================
+    const aosElements = document.querySelectorAll('[data-aos]');
+
+    const aosObserver = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+            if (entry.isIntersecting) {
+                const el = entry.target;
+                const delay = parseInt(el.dataset.aosDelay || 0);
+
+                setTimeout(() => {
+                    el.classList.add('aos-animate');
+                }, delay);
+
+                aosObserver.unobserve(el);
+            }
+        });
+    }, {
+        threshold: 0.1,
+        rootMargin: '0px 0px -60px 0px'
+    });
+
+    aosElements.forEach(el => aosObserver.observe(el));
+
+    // ========================
+    // SMOOTH SCROLL
+    // ========================
+    document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+        anchor.addEventListener('click', function(e) {
+            const href = this.getAttribute('href');
+            if (href === '#') return;
+
+            const target = document.querySelector(href);
+            if (!target) return;
+
+            e.preventDefault();
+
+            const headerHeight = header.offsetHeight;
+            const targetTop = target.getBoundingClientRect().top + window.scrollY - headerHeight - 16;
+
+            window.scrollTo({
+                top: targetTop,
+                behavior: 'smooth'
+            });
+        });
+    });
+
+    // ========================
+    // REVIEW IMAGE LIGHTBOX
+    // ========================
+    const reviewImgWraps = document.querySelectorAll('.review-screenshot');
+
+    // Create lightbox
+    const lightbox = document.createElement('div');
+    lightbox.className = 'lightbox';
+    lightbox.innerHTML = `
+        <div class="lightbox__overlay"></div>
+        <div class="lightbox__content">
+            <button class="lightbox__close" aria-label="Закрыть">
+                <i class="fas fa-times"></i>
             </button>
-        </nav>
-    </header>
-
-    <!-- Hero Section -->
-    <section class="hero" id="home">
-        <div class="hero__bg">
-            <div class="hero__circle hero__circle--1"></div>
-            <div class="hero__circle hero__circle--2"></div>
-            <div class="hero__circle hero__circle--3"></div>
-            <canvas class="hero__starfield" id="starfield"></canvas>
+            <img src="" alt="Отзыв" class="lightbox__img">
         </div>
-        <div class="container hero__content">
-            <div class="hero__badge">
-                <span class="hero__badge-icon">✦</span>
-                <span>Нумерология &amp; Астрология</span>
-            </div>
-            <h1 class="hero__title">
-                <span class="hero__title-line">Невидимые</span>
-                <span class="hero__title-line">Опоры</span>
-            </h1>
-            <p class="hero__subtitle">
-                Нумерологический и астрологический анализ как инструменты самопознания.<br>
-                Альтернативный взгляд на обстоятельства вашей жизни.
-            </p>
-            <div class="hero__actions">
-                <a href="#services" class="btn btn--primary">
-                    <span>Выбрать разбор</span>
-                    <i class="fas fa-arrow-down"></i>
-                </a>
-                <a href="#why" class="btn btn--ghost">
-                    <span>Узнать больше</span>
-                </a>
-            </div>
-            <div class="hero__stats">
-                <div class="hero__stat">
-                    <span class="hero__stat-num">7+</span>
-                    <span class="hero__stat-label">лет практики</span>
-                </div>
-                <div class="hero__stat-divider">✦</div>
-                <div class="hero__stat">
-                    <span class="hero__stat-num">150+</span>
-                    <span class="hero__stat-label">разборов проведено</span>
-                </div>
-                <div class="hero__stat-divider">✦</div>
-                <div class="hero__stat">
-                    <span class="hero__stat-num">98%</span>
-                    <span class="hero__stat-label">довольных клиентов</span>
-                </div>
-            </div>
-        </div>
-        <div class="hero__scroll">
-            <span>Листай вниз</span>
-            <div class="hero__scroll-line"></div>
-        </div>
-    </section>
+    `;
+    document.body.appendChild(lightbox);
 
-    <!-- Services Section -->
-    <section class="section services" id="services">
-        <div class="container">
-            <div class="section__header">
-                <span class="section__tag">Нумерология</span>
-                <h2 class="section__title">Выберите свой разбор</h2>
-                <p class="section__subtitle">Для анализа нужна только ваша дата рождения</p>
-            </div>
+    // Lightbox styles
+    const lbStyles = document.createElement('style');
+    lbStyles.textContent = `
+        .lightbox {
+            position: fixed;
+            inset: 0;
+            z-index: 9999;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s ease;
+        }
+        .lightbox.active {
+            opacity: 1;
+            pointer-events: all;
+        }
+        .lightbox__overlay {
+            position: absolute;
+            inset: 0;
+            background: rgba(0,0,0,0.92);
+            backdrop-filter: blur(8px);
+        }
+        .lightbox__content {
+            position: relative;
+            z-index: 1;
+            max-width: min(90vw, 700px);
+            max-height: 90vh;
+        }
+        .lightbox__img {
+            width: 100%;
+            height: auto;
+            border-radius: 16px;
+            box-shadow: 0 20px 80px rgba(0,0,0,0.8);
+            max-height: 90vh;
+            object-fit: contain;
+        }
+        .lightbox__close {
+            position: absolute;
+            top: -16px;
+            right: -16px;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: rgba(201,168,76,0.2);
+            border: 1px solid rgba(201,168,76,0.4);
+            color: #E8C96A;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1rem;
+            z-index: 2;
+            transition: all 0.2s;
+        }
+        .lightbox__close:hover {
+            background: rgba(201,168,76,0.35);
+        }
+    `;
+    document.head.appendChild(lbStyles);
 
-            <div class="services__grid">
+    const lbImg = lightbox.querySelector('.lightbox__img');
+    const lbClose = lightbox.querySelector('.lightbox__close');
+    const lbOverlay = lightbox.querySelector('.lightbox__overlay');
 
-                <!-- Silver -->
-                <div class="service-card service-card--silver" data-aos="fade-up">
-                    <div class="service-card__header">
-                        <div class="service-card__icon">
-                            <i class="fas fa-moon"></i>
-                        </div>
-                        <div class="service-card__badge">Silver</div>
-                    </div>
-                    <h3 class="service-card__title">Базовый нумерологический разбор</h3>
-                    <p class="service-card__desc">
-                        Первый шаг в мир нумерологии. Неклассический подход — взгляд на вас через призму цифр, дающий первые ключи к пониманию себя.
-                    </p>
-                    <ul class="service-card__features">
-                        <li><i class="fas fa-check"></i> Базовое нумерологическое описание личности</li>
-                        <li><i class="fas fa-check"></i> Ключевые числа вашей судьбы</li>
-                        <li><i class="fas fa-check"></i> Основные жизненные паттерны</li>
-                        <li><i class="fas fa-check"></i> Аудио-запись разбора</li>
-                    </ul>
-                    <div class="service-card__footer">
-                        <div class="service-card__price">
-                            <span class="price__amount">7 495</span>
-                            <span class="price__currency">₽</span>
-                        </div>
-                        <a href="https://t.me/upgrade24k" target="_blank" class="btn btn--silver">
-                            Сделать первый шаг
-                        </a>
-                    </div>
-                    <div class="service-card__note">
-                        <i class="fas fa-info-circle"></i>
-                        Нужна только дата рождения
-                    </div>
-                </div>
+    function openLightbox(src) {
+        lbImg.src = src;
+        lightbox.classList.add('active');
+        document.body.style.overflow = 'hidden';
+    }
 
-                <!-- Gold -->
-                <div class="service-card service-card--gold service-card--featured" data-aos="fade-up" data-aos-delay="150">
-                    <div class="service-card__popular">Лучшее предложение</div>
-                    <div class="service-card__header">
-                        <div class="service-card__icon">
-                            <i class="fas fa-sun"></i>
-                        </div>
-                        <div class="service-card__badge">Gold</div>
-                    </div>
-                    <h3 class="service-card__title">Флагманская нумерологическая консультация</h3>
-                    <p class="service-card__desc">
-                        Для тех, кто готов идти в глубину. Детальное и исчерпывающее описание вашей личности во всех измерениях.
-                    </p>
-                    <ul class="service-card__features">
-                        <li><i class="fas fa-star"></i> Глубокий разбор личности</li>
-                        <li><i class="fas fa-star"></i> Прошлые воплощения и их багаж</li>
-                        <li><i class="fas fa-star"></i> Кармические уроки и задачи</li>
-                        <li><i class="fas fa-star"></i> Родовые задачи и долги</li>
-                        <li><i class="fas fa-star"></i> Ваша миссия и предназначение</li>
-                        <li><i class="fas fa-star"></i> Уникальные грани, отличающие вас</li>
-                        <li><i class="fas fa-star"></i> Аудио-запись разбора</li>
-                    </ul>
-                    <div class="service-card__footer">
-                        <div class="service-card__price">
-                            <span class="price__amount">14 995</span>
-                            <span class="price__currency">₽</span>
-                        </div>
-                        <a href="https://t.me/upgrade24k" target="_blank" class="btn btn--gold">
-                            Заказать разбор
-                        </a>
-                    </div>
-                    <div class="service-card__note">
-                        <i class="fas fa-gift"></i>
-                        Можно заказать в подарок
-                    </div>
-                </div>
+    function closeLightbox() {
+        lightbox.classList.remove('active');
+        document.body.style.overflow = '';
+        setTimeout(() => { lbImg.src = ''; }, 300);
+    }
 
-            </div>
+    reviewImgWraps.forEach(wrap => {
+        wrap.addEventListener('click', () => {
+            const img = wrap.querySelector('img');
+            if (img) openLightbox(img.src);
+        });
+    });
 
-            <div class="services__gift">
-                <div class="gift__icon"><i class="fas fa-gift"></i></div>
-                <div class="gift__text">
-                    <strong>Идеальный подарок!</strong>
-                    Нумерологический разбор можно заказать для подруги, друга, брата, свата и не только — для любого близкого человека.
-                </div>
-            </div>
-        </div>
-    </section>
+    lbClose.addEventListener('click', closeLightbox);
+    lbOverlay.addEventListener('click', closeLightbox);
 
-    <!-- Why Section -->
-    <section class="section why" id="why">
-        <div class="why__bg">
-            <div class="why__orb why__orb--1"></div>
-            <div class="why__orb why__orb--2"></div>
-        </div>
-        <div class="container">
-            <div class="section__header">
-                <span class="section__tag">Зачем это нужно</span>
-                <h2 class="section__title">Через призму прошлых жизней</h2>
-                <p class="section__subtitle">Вы можете лучше понять себя и обстоятельства своей жизни</p>
-            </div>
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') closeLightbox();
+    });
 
-            <div class="why__grid">
-                <div class="why__card" data-aos="fade-up">
-                    <div class="why__card-icon">
-                        <i class="fas fa-infinity"></i>
-                    </div>
-                    <h4>Багаж опыта души</h4>
-                    <p>Какой опыт ваша душа несёт с собой через пространство и время.</p>
-                </div>
-                <div class="why__card" data-aos="fade-up" data-aos-delay="100">
-                    <div class="why__card-icon">
-                        <i class="fas fa-yin-yang"></i>
-                    </div>
-                    <h4>Кармические задачи</h4>
-                    <p>Что вам ещё предстоит решить в этом воплощении.</p>
-                </div>
-                <div class="why__card" data-aos="fade-up" data-aos-delay="200">
-                    <div class="why__card-icon">
-                        <i class="fas fa-sync-alt"></i>
-                    </div>
-                    <h4>Повторяющиеся паттерны</h4>
-                    <p>Почему одни и те же люди и события возвращаются в вашу жизнь снова и снова.</p>
-                </div>
-                <div class="why__card" data-aos="fade-up" data-aos-delay="300">
-                    <div class="why__card-icon">
-                        <i class="fas fa-gem"></i>
-                    </div>
-                    <h4>Уникальные таланты</h4>
-                    <p>Какие способности вы принесли из прошлых воплощений.</p>
-                </div>
-                <div class="why__card" data-aos="fade-up" data-aos-delay="400">
-                    <div class="why__card-icon">
-                        <i class="fas fa-eye"></i>
-                    </div>
-                    <h4>Скрытые связи</h4>
-                    <p>Невидимые взаимосвязи между вами, людьми, обстоятельствами и событиями.</p>
-                </div>
-                <div class="why__card" data-aos="fade-up" data-aos-delay="500">
-                    <div class="why__card-icon">
-                        <i class="fas fa-key"></i>
-                    </div>
-                    <h4>Ключи к решениям</h4>
-                    <p>Причины жизненных ситуаций и пути их решения.</p>
-                </div>
-            </div>
-        </div>
-    </section>
+    // ========================
+    // HERO PARALLAX (subtle)
+    // ========================
+    const heroCircles = document.querySelectorAll('.hero__circle');
 
-    <!-- Astrology Section -->
-    <section class="section astro" id="astro">
-        <div class="container">
-            <div class="section__header">
-                <span class="section__tag">Астрология</span>
-                <h2 class="section__title">Астрологические консультации</h2>
-                <p class="section__subtitle">Разбираю только самые интересные и глубокие темы</p>
-            </div>
+    window.addEventListener('scroll', () => {
+        const scrollY = window.scrollY;
+        const maxScroll = window.innerHeight;
 
-            <div class="astro__grid">
+        if (scrollY < maxScroll) {
+            heroCircles.forEach((circle, i) => {
+                const speed = 0.1 + i * 0.05;
+                circle.style.transform = `translateY(${scrollY * speed}px)`;
+            });
+        }
+    }, { passive: true });
 
-                <!-- AstroBaby -->
-                <div class="astro-card" data-aos="fade-right">
-                    <div class="astro-card__tag">AstroBaby</div>
-                    <div class="astro-card__icon-wrap">
-                        <div class="astro-card__icon">
-                            <i class="fas fa-baby"></i>
-                        </div>
-                    </div>
-                    <h3 class="astro-card__title">Развитие ребёнка</h3>
-                    <p class="astro-card__subtitle">Индивидуальные рекомендации на основе натальной карты</p>
-                    <ul class="astro-card__list">
-                        <li><i class="fas fa-chevron-right"></i> Какой вид спорта подойдёт вашему ребёнку</li>
-                        <li><i class="fas fa-chevron-right"></i> Какой учитель нужен для лучшего усвоения материала</li>
-                        <li><i class="fas fa-chevron-right"></i> Какая система образования лучше подходит</li>
-                        <li><i class="fas fa-chevron-right"></i> Что будет мотивировать к действиям</li>
-                    </ul>
-                    <div class="astro-card__info">
-                        <div class="astro-card__info-item">
-                            <i class="fas fa-calendar-alt"></i>
-                            <span>Нужны дата, место и время рождения ребёнка</span>
-                        </div>
-                        <div class="astro-card__info-item">
-                            <i class="fas fa-headphones"></i>
-                            <span>Отправляю аудио-запись</span>
-                        </div>
-                    </div>
-                    <div class="astro-card__footer">
-                        <div class="service-card__price">
-                            <span class="price__amount">7 495</span>
-                            <span class="price__currency">₽</span>
-                        </div>
-                        <a href="https://t.me/upgrade24k" target="_blank" class="btn btn--astro">Записаться</a>
-                    </div>
-                </div>
+    // ========================
+    // NUMBER COUNTER ANIMATION
+    // ========================
+    const statsSection = document.querySelector('.hero__stats');
+    const statNums = document.querySelectorAll('.hero__stat-num');
 
-                <!-- Venera -->
-                <div class="astro-card astro-card--venera" data-aos="fade-left">
-                    <div class="astro-card__tag">Venera: upgrade</div>
-                    <div class="astro-card__icon-wrap">
-                        <div class="astro-card__icon">
-                            <i class="fas fa-venus"></i>
-                        </div>
-                    </div>
-                    <h3 class="astro-card__title">Венера — твоё Внутреннее Золото</h3>
-                    <p class="astro-card__subtitle">Индивидуальная астро-инструкция по улучшению отношений и привлекательности</p>
-                    <ul class="astro-card__list">
-                        <li><i class="fas fa-chevron-right"></i> Уверенность в собственном теле и отношениях</li>
-                        <li><i class="fas fa-chevron-right"></i> Осознанная привлекательность</li>
-                        <li><i class="fas fa-chevron-right"></i> Усиление личного притяжения через внешний вид</li>
-                        <li><i class="fas fa-chevron-right"></i> Вернуть кайф от жизни</li>
-                        <li><i class="fas fa-chevron-right"></i> Зажечь харизму и женскую энергию</li>
-                        <li><i class="fas fa-chevron-right"></i> Притягивать правильных партнёров и возможности</li>
-                    </ul>
-                    <div class="astro-card__highlight">
-                        Откройте персональные действия, которые мгновенно усилят вашу привлекательность, финансовый поток и удовольствие от жизни.
-                    </div>
-                    <div class="astro-card__info">
-                        <div class="astro-card__info-item">
-                            <i class="fas fa-calendar-alt"></i>
-                            <span>Нужны дата, место и время вашего рождения</span>
-                        </div>
-                        <div class="astro-card__info-item">
-                            <i class="fas fa-headphones"></i>
-                            <span>Отправляю аудио-запись</span>
-                        </div>
-                    </div>
-                    <div class="astro-card__footer">
-                        <div class="service-card__price">
-                            <span class="price__amount">7 495</span>
-                            <span class="price__currency">₽</span>
-                        </div>
-                        <a href="https://t.me/upgrade24k" target="_blank" class="btn btn--venera">Записаться</a>
-                    </div>
-                </div>
+    const targets = [];
+    statNums.forEach(el => {
+        const text = el.textContent;
+        const num = parseFloat(text.replace(/[^\d.]/g, ''));
+        const suffix = text.replace(/[\d.]/g, '');
+        targets.push({ el, num, suffix, started: false });
+    });
 
-            </div>
+    function animateCounter(el, target, suffix, duration = 1500) {
+        let start = 0;
+        const step = target / (duration / 16);
+        const timer = setInterval(() => {
+            start += step;
+            if (start >= target) {
+                clearInterval(timer);
+                el.textContent = target + suffix;
+            } else {
+                el.textContent = Math.floor(start) + suffix;
+            }
+        }, 16);
+    }
 
-            <!-- Extra topics -->
-            <div class="extra-topics" data-aos="fade-up">
-                <div class="extra-topics__header">
-                    <span class="extra-topics__icon">✦</span>
-                    <h3>Также всегда можно спросить</h3>
-                    <span class="extra-topics__icon">✦</span>
-                </div>
-                <div class="extra-topics__grid">
-                    <div class="extra-topic">
-                        <i class="fas fa-heart"></i>
-                        <span>Отношения и совместимость с партнёром</span>
-                    </div>
-                    <div class="extra-topic">
-                        <i class="fas fa-layer-group"></i>
-                        <span>Таро</span>
-                    </div>
-                    <div class="extra-topic">
-                        <i class="fas fa-calendar-check"></i>
-                        <span>Подбор даты для важного события</span>
-                    </div>
-                    <div class="extra-topic">
-                        <i class="fas fa-user-friends"></i>
-                        <span>Совместимость с ребёнком, начальником, родителем</span>
-                    </div>
-                    <div class="extra-topic">
-                        <i class="fas fa-moon"></i>
-                        <span>То, что не принято обсуждать, но очень хочется узнать</span>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </section>
+    if ('IntersectionObserver' in window && statsSection) {
+        const statsObserver = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    targets.forEach(({ el, num, suffix }) => {
+                        animateCounter(el, num, suffix);
+                    });
+                    statsObserver.disconnect();
+                }
+            });
+        }, { threshold: 0.5 });
 
-    <!-- About Section -->
-    <section class="section about" id="about">
-        <div class="about__bg">
-            <div class="about__orb"></div>
-        </div>
-        <div class="container about__container">
-            <div class="about__visual" data-aos="fade-right">
-                <div class="about__emblem">
-                    <div class="about__emblem-ring about__emblem-ring--1"></div>
-                    <div class="about__emblem-ring about__emblem-ring--2"></div>
-                    <div class="about__emblem-ring about__emblem-ring--3"></div>
-                    <div class="about__emblem-center">
-                        <i class="fas fa-star"></i>
-                    </div>
-                    <div class="about__zodiac-signs">
-                        <span style="--i:0">♈</span>
-                        <span style="--i:1">♉</span>
-                        <span style="--i:2">♊</span>
-                        <span style="--i:3">♋</span>
-                        <span style="--i:4">♌</span>
-                        <span style="--i:5">♍</span>
-                        <span style="--i:6">♎</span>
-                        <span style="--i:7">♏</span>
-                        <span style="--i:8">♐</span>
-                        <span style="--i:9">♑</span>
-                        <span style="--i:10">♒</span>
-                        <span style="--i:11">♓</span>
-                    </div>
-                </div>
-                <div class="about__name">
-                    <span>Ольга</span>
-                    <span class="about__title-line">Нумеролог &amp; Астролог</span>
-                </div>
-            </div>
-            <div class="about__content" data-aos="fade-left">
-                <span class="section__tag">Обо мне</span>
-                <h2 class="section__title section__title--left">Путь к золотым краскам</h2>
-                <div class="about__text">
-                    <p>
-                        <strong>Человеческое образование:</strong> музеология и культурное наследие, профориентация и карьерное консультирование, детский коучинг, бесчисленное количество курсов, конференций и семинаров по МАК, детскому и подростковому развитию.
-                    </p>
-                    <p>
-                        Много лет я консультировала, опираясь только на научный, рациональный подход и психологию, но всегда оставались <em>«белые пятна»</em> и понимание, что «человек сам себя не знает».
-                    </p>
-                    <p>
-                        Когда я открыла для себя альтернативные инструменты самопознания — в моей палитре жизни появились новые краски. <strong class="text-gold">Золотые.</strong>
-                    </p>
-                </div>
-                <div class="about__interests">
-                    <h4 class="about__interests-title">Сферы интересов:</h4>
-                    <div class="about__interests-grid">
-                        <div class="about__interest">
-                            <i class="fas fa-cross"></i>
-                            <span>Религиозный мистицизм</span>
-                        </div>
-                        <div class="about__interest">
-                            <i class="fas fa-book-open"></i>
-                            <span>Глубинная философия и духовность</span>
-                        </div>
-                        <div class="about__interest">
-                            <i class="fas fa-scroll"></i>
-                            <span>Герметические учения</span>
-                        </div>
-                        <div class="about__interest">
-                            <i class="fas fa-calculator"></i>
-                            <span>Древние вычислительные системы</span>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </section>
+        statsObserver.observe(statsSection);
+    }
 
-    <!-- Reviews Section -->
-    <section class="section reviews" id="reviews">
-        <div class="container">
-            <div class="section__header">
-                <span class="section__tag">Отзывы</span>
-                <h2 class="section__title">Что говорят клиенты</h2>
-                <p class="section__subtitle">Живые отзывы из мессенджеров</p>
-            </div>
+    // ========================
+    // ZODIAC SIGN ROTATION
+    // ========================
+    const zodiacContainer = document.querySelector('.about__zodiac-signs');
+    if (zodiacContainer) {
+        let angle = 0;
+        function rotateZodiac() {
+            angle += 0.15;
+            const signs = zodiacContainer.querySelectorAll('span');
+            signs.forEach((sign, i) => {
+                const baseAngle = (i * 30 + angle) * (Math.PI / 180);
+                const radius = 120;
+                const x = Math.cos(baseAngle) * radius;
+                const y = Math.sin(baseAngle) * radius;
+                sign.style.transform = `translate(calc(-50% + ${x}px), calc(-50% + ${y}px))`;
+                sign.style.position = 'absolute';
+                sign.style.top = '50%';
+                sign.style.left = '50%';
+            });
+            requestAnimationFrame(rotateZodiac);
+        }
+        rotateZodiac();
+    }
 
-            <div class="reviews__grid">
+    // ========================
+    // GOLD SHIMMER ON CARDS
+    // ========================
+    const goldCards = document.querySelectorAll('.service-card--gold, .contact__card');
 
-                <!-- Review 1 -->
-                <div class="review-card" data-aos="fade-up">
-                    <div class="review-card__top">
-                        <div class="review-card__stars">★★★★★</div>
-                        <span class="review-card__date">23 октября 2025</span>
-                    </div>
-                    <blockquote class="review-card__text">
-                        Спасибо большое за ваш труд, меня очень впечатлило услышанное, мне надо несколько раз прослушать — столько всего важного.
-                    </blockquote>
-                    <div class="review-card__footer">
-                        <div class="review-card__avatar">А</div>
-                        <div class="review-card__meta">
-                            <span class="review-card__name">Анна</span>
-                        </div>
-                    </div>
-                </div>
+    goldCards.forEach(card => {
+        card.addEventListener('mousemove', (e) => {
+            const rect = card.getBoundingClientRect();
+            const x = ((e.clientX - rect.left) / rect.width) * 100;
+            const y = ((e.clientY - rect.top) / rect.height) * 100;
+            card.style.setProperty('--mouse-x', `${x}%`);
+            card.style.setProperty('--mouse-y', `${y}%`);
+        });
+    });
 
-                <!-- Review 2 -->
-                <div class="review-card" data-aos="fade-up" data-aos-delay="100">
-                    <div class="review-card__top">
-                        <div class="review-card__stars">★★★★★</div>
-                        <span class="review-card__date">22 апреля 2024</span>
-                    </div>
-                    <blockquote class="review-card__text">
-                        Добрый день, огромное спасибо за распаковку 🤍 Очень во многом себя узнала — мурашки по телу 😆
-                    </blockquote>
-                    <div class="review-card__footer">
-                        <div class="review-card__avatar">М</div>
-                        <div class="review-card__meta">
-                            <span class="review-card__name">Марина</span>
-                        </div>
-                    </div>
-                </div>
+    // Add shimmer style
+    const shimmerStyle = document.createElement('style');
+    shimmerStyle.textContent = `
+        .service-card--gold,
+        .contact__card {
+            --mouse-x: 50%;
+            --mouse-y: 50%;
+        }
+        .service-card--gold::after,
+        .contact__card::after {
+            content: '';
+            position: absolute;
+            inset: 0;
+            border-radius: inherit;
+            background: radial-gradient(circle at var(--mouse-x) var(--mouse-y), rgba(201,168,76,0.07) 0%, transparent 60%);
+            pointer-events: none;
+            transition: opacity 0.3s;
+            opacity: 0;
+            z-index: 0;
+        }
+        .service-card--gold:hover::after,
+        .contact__card:hover::after {
+            opacity: 1;
+        }
+    `;
+    document.head.appendChild(shimmerStyle);
 
-                <!-- Review 3 -->
-                <div class="review-card" data-aos="fade-up" data-aos-delay="200">
-                    <div class="review-card__top">
-                        <div class="review-card__stars">★★★★★</div>
-                    </div>
-                    <blockquote class="review-card__text">
-                        Спасибо, Ольга 🙏 Всё очень интересно. Времени нужно побольше — столько информации, надо переварить )
-                    </blockquote>
-                    <div class="review-card__footer">
-                        <div class="review-card__avatar">Е</div>
-                        <div class="review-card__meta">
-                            <span class="review-card__name">Екатерина</span>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Review 4 -->
-                <div class="review-card" data-aos="fade-up" data-aos-delay="100">
-                    <div class="review-card__top">
-                        <div class="review-card__stars">★★★★★</div>
-                    </div>
-                    <blockquote class="review-card__text">
-                        У меня ощущение невероятного прилива сил после распаковки. Услышала что-то важное для себя. Мне не было так уже несколько лет.
-                    </blockquote>
-                    <div class="review-card__footer">
-                        <div class="review-card__avatar">О</div>
-                        <div class="review-card__meta">
-                            <span class="review-card__name">Ольга</span>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Review 5 -->
-                <div class="review-card" data-aos="fade-up" data-aos-delay="200">
-                    <div class="review-card__top">
-                        <div class="review-card__stars">★★★★★</div>
-                    </div>
-                    <blockquote class="review-card__text">
-                        Очень было интересно, полезно, местами трогательно и очень близко. Откликнулось всё 🤍 Берём в работу 😇
-                    </blockquote>
-                    <div class="review-card__footer">
-                        <div class="review-card__avatar">Т</div>
-                        <div class="review-card__meta">
-                            <span class="review-card__name">Татьяна</span>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Review 6 -->
-                <div class="review-card" data-aos="fade-up" data-aos-delay="300">
-                    <div class="review-card__top">
-                        <div class="review-card__stars">★★★★★</div>
-                    </div>
-                    <blockquote class="review-card__text">
-                        Спасибо большое за огромную работу. Буду прислушиваться к себе, к знакам. Взяла много вещей под карандаш.
-                    </blockquote>
-                    <div class="review-card__footer">
-                        <div class="review-card__avatar">И</div>
-                        <div class="review-card__meta">
-                            <span class="review-card__name">Ирина</span>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Review 7 — wide -->
-                <div class="review-card review-card--wide" data-aos="fade-up">
-                    <div class="review-card__top">
-                        <div class="review-card__stars">★★★★★</div>
-                    </div>
-                    <blockquote class="review-card__text">
-                        Все поняла, все буду учитывать, вы мне дали такие ключи — я буду стараться ими воспользоваться. Буду думать над своим личным семейным положением, всё таки нужно полюбить конечно изначально 😊
-                        <br><br>
-                        Ещё раз огромнейшее вам спасибо! Это невероятные открытия и очень важные для меня! Принимаю их все с благодарностью. Пусть всё то, что вы даёте людям доброе и нужное, вернётся вам вдвойне! ❤️
-                    </blockquote>
-                    <div class="review-card__footer">
-                        <div class="review-card__avatar">Н</div>
-                        <div class="review-card__meta">
-                            <span class="review-card__name">Наталья</span>
-                        </div>
-                    </div>
-                </div>
-
-            </div>
-        </div>
-    </section>
-
-    <!-- Contact Section -->
-    <section class="section contact" id="contact">
-        <div class="contact__bg">
-            <div class="contact__orb contact__orb--1"></div>
-            <div class="contact__orb contact__orb--2"></div>
-        </div>
-        <div class="container">
-            <div class="section__header">
-                <span class="section__tag">Записаться</span>
-                <h2 class="section__title">Начните свой путь сегодня</h2>
-                <p class="section__subtitle">Напишите мне в мессенджер — и мы обсудим, какой формат подойдёт именно вам</p>
-            </div>
-
-            <div class="contact__content">
-                <div class="contact__steps" data-aos="fade-right">
-                    <h3 class="contact__steps-title">Как это работает</h3>
-                    <div class="contact__step">
-                        <div class="contact__step-num">01</div>
-                        <div class="contact__step-text">
-                            <strong>Напишите мне</strong>
-                            <span>Выберите удобный мессенджер и напишите</span>
-                        </div>
-                    </div>
-                    <div class="contact__step">
-                        <div class="contact__step-num">02</div>
-                        <div class="contact__step-text">
-                            <strong>Пришлите данные</strong>
-                            <span>Для нумерологии — только дату рождения. Для астрологии — дату, место и время.</span>
-                        </div>
-                    </div>
-                    <div class="contact__step">
-                        <div class="contact__step-num">03</div>
-                        <div class="contact__step-text">
-                            <strong>Получите разбор</strong>
-                            <span>Я подготовлю персональную аудио-запись и отправлю вам</span>
-                        </div>
-                    </div>
-                    <div class="contact__step">
-                        <div class="contact__step-num">04</div>
-                        <div class="contact__step-text">
-                            <strong>Ваши открытия</strong>
-                            <span>Слушайте, переслушивайте, открывайте новое о себе</span>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="contact__cta" data-aos="fade-left">
-                    <div class="contact__card">
-                        <div class="contact__card-icon">✦</div>
-                        <h3>Готовы начать?</h3>
-                        <p>Напишите мне в удобный мессенджер — отвечу быстро и с удовольствием.</p>
-                        <div class="contact__messengers">
-                            <a href="https://t.me/upgrade24k" target="_blank" class="messenger-btn messenger-btn--tg">
-                                <i class="fab fa-telegram"></i>
-                                <span>Написать в Telegram</span>
-                            </a>
-                        </div>
-                        <div class="contact__price-reminder">
-                            <div class="contact__price-item">
-                                <span class="contact__price-tag silver-tag">Silver</span>
-                                <span class="contact__price-val">7 495 ₽</span>
-                            </div>
-                            <div class="contact__price-item">
-                                <span class="contact__price-tag gold-tag">Gold</span>
-                                <span class="contact__price-val">14 995 ₽</span>
-                            </div>
-                            <div class="contact__price-item">
-                                <span class="contact__price-tag astro-tag">Астро</span>
-                                <span class="contact__price-val">7 495 ₽</span>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </section>
-
-    <!-- Footer -->
-    <footer class="footer">
-        <div class="container">
-            <div class="footer__content">
-                <div class="footer__logo">
-                    <span class="logo-symbol">✦</span>
-                    <div>
-                        <span class="logo-text">Невидимые Опоры</span>
-                        <span class="logo-sub">Upgrade24k</span>
-                    </div>
-                </div>
-                <p class="footer__tagline">
-                    Нумерологический и астрологический анализ как инструменты самопознания
-                </p>
-                <div class="footer__links">
-                    <a href="#services">Услуги</a>
-                    <a href="#about">Обо мне</a>
-                    <a href="#reviews">Отзывы</a>
-                    <a href="#contact">Контакт</a>
-                </div>
-            </div>
-            <div class="footer__bottom">
-                <p>© 2025 Невидимые Опоры — Upgrade24k. Все права защищены.</p>
-            </div>
-        </div>
-    </footer>
-
-    <script src="js/main.js"></script>
-</body>
-</html>
+    console.log('✦ Невидимые Опоры — Upgrade24k initialized');
+});
