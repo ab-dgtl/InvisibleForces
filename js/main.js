@@ -132,7 +132,7 @@
   /* ---------- Отправка уведомления в Telegram ---------- */
   function sendToTelegram(payload) {
     var cfg = (window.SITE_CONFIG && window.SITE_CONFIG.telegram) || {};
-    if (!cfg.enabled) return Promise.resolve({ skipped: true });
+    if (!cfg.enabled) return Promise.resolve({ ok: false, skipped: true });
 
     var text =
       'Новая заявка — Невидимые опоры\n' +
@@ -143,26 +143,29 @@
       'Тариф: ' + payload.tariff + '\n' +
       'Дата заявки: ' + payload.created_at;
 
-    // Вариант 1 (рекомендуется): вебхук / сервис-посредник
+    var url = '';
     if (cfg.webhookUrl) {
-      return fetch(cfg.webhookUrl, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ text: text, chat_id: cfg.chatId || '', data: payload })
-      });
+      // Вариант 1 (рекомендуется): вебхук / сервис-посредник
+      url = cfg.webhookUrl;
+    } else if (cfg.botToken && cfg.chatId) {
+      // Вариант 2: напрямую через Bot API (токен виден в исходном коде)
+      url = 'https://api.telegram.org/bot' + cfg.botToken + '/sendMessage';
+    } else {
+      return Promise.resolve({ ok: false, misconfigured: true });
     }
 
-    // Вариант 2: напрямую через Bot API (токен виден в исходном коде)
-    if (cfg.botToken && cfg.chatId) {
-      var url = 'https://api.telegram.org/bot' + cfg.botToken + '/sendMessage';
-      return fetch(url, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ chat_id: cfg.chatId, text: text, disable_web_page_preview: true })
-      });
-    }
-
-    return Promise.resolve({ misconfigured: true });
+    return fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        chat_id: cfg.chatId || '',
+        text: text,
+        disable_web_page_preview: true,
+        data: payload
+      })
+    }).then(function (res) {
+      return { ok: res.ok, status: res.status };
+    });
   }
 
   /* ---------- Отправка формы ---------- */
@@ -209,26 +212,48 @@
     }).then(function (res) {
       if (!res.ok) throw new Error('HTTP ' + res.status);
       return res.json();
+    }).then(function (data) {
+      return { table: true };
+    }).catch(function (err) {
+      // Таблица недоступна — не теряем заявку, полагаемся на вебхук
+      if (window.console && console.warn) {
+        console.warn('[Заявка] Не сохранено в таблицу:', err.message);
+      }
+      return { table: false };
     });
 
-    // Заявка сохраняется в таблицу; параллельно уходит уведомление в Telegram
-    Promise.all([
-      saveToTable,
-      sendToTelegram(payload).catch(function () { return { telegramError: true }; })
-    ])
-      .then(function () {
+    var sendWebhook = sendToTelegram(payload).then(function (res) {
+      // Вебхук ответил, но HTTP-статус мог быть ошибочным
+      if (res && res.ok === false) throw new Error('HTTP ' + res.status);
+      return { telegram: true };
+    }).catch(function (err) {
+      if (window.console && console.warn) {
+        console.warn('[Заявка] Не отправлено в Telegram:', err.message);
+      }
+      return { telegram: false };
+    });
+
+    // Заявка считается принятой, если сработал хотя бы один канал:
+    // сохранение в таблицу ИЛИ уведомление в Telegram.
+    Promise.all([saveToTable, sendWebhook])
+      .then(function (results) {
+        var saved = results[0].table;
+        var sent = results[1].telegram;
+
+        if (!saved && !sent) {
+          if (statusEl) {
+            statusEl.classList.add('error');
+            statusEl.textContent = 'Не удалось отправить заявку. Пожалуйста, попробуйте ещё раз.';
+          }
+          return;
+        }
+
         form.reset();
         if (phoneMask) phoneMask.value = '';
         FIELDS.forEach(function (id) { setError(id, ''); });
         if (statusEl) {
           statusEl.classList.remove('error');
           statusEl.textContent = 'Спасибо! Ваша заявка отправлена — я свяжусь с вами.';
-        }
-      })
-      .catch(function () {
-        if (statusEl) {
-          statusEl.classList.add('error');
-          statusEl.textContent = 'Не удалось отправить заявку. Пожалуйста, попробуйте ещё раз.';
         }
       })
       .finally(function () {
