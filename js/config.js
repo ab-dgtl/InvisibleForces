@@ -19,7 +19,7 @@ window.SITE_CONFIG = {
     /* Вариант 1 (рекомендуется): URL вашего вебхука/прокси или
        сервиса-посредника (Make, n8n, Zapier, Cloudflare Worker).
        Сайт отправит заявку туда, а сервис — уже в Telegram. */
-    webhookUrl: '',
+    webhookUrl: 'https://hook.eu2.make.com/vis7dvru8h6hgk5di3mibimchjj8yj79',
 
     /* Вариант 2 (без сервера): данные бота Telegram.
        Токен бот получает у @BotFather, chat_id — у @userinfobot
