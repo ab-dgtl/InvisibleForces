@@ -54,9 +54,9 @@
 
 - `id` (text) — идентификатор заявки;
 - `name` (text) — имя;
-- `birth_date` (text) — дата рождения;
+- `birth_date` (text) — дата рождения в формате `дд/мм/гггг` (необязательно);
 - `phone` (text) — телефон;
-- `email` (text) — почта;
+- `telegram` (text) — имя пользователя Telegram, например `@username` (необязательно);
 - `tariff` (text) — выбранный тариф/услуга;
 - `created_at` (datetime) — дата заявки.
 

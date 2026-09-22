@@ -45,6 +45,20 @@
     } catch (e) { phoneMask = null; }
   }
 
+  /* ---------- МАСКА ДАТЫ РОЖДЕНИЯ (дд/мм/гггг) ----------
+     Год ограничен 4 цифрами маской; поле необязательное. */
+  var birthInput = document.getElementById('field-birth');
+  var birthMask = null;
+  if (birthInput && typeof window.IMask !== 'undefined') {
+    try {
+      birthMask = window.IMask(birthInput, {
+        mask: '00/00/0000',
+        lazy: false,
+        placeholderChar: '_'
+      });
+    } catch (e) { birthMask = null; }
+  }
+
   /* ===========================================================
      ЗАЯВКА
      =========================================================== */
@@ -52,7 +66,7 @@
   if (!form) return;
   var statusEl = document.getElementById('form-status');
 
-  var FIELDS = ['field-name', 'field-birth', 'field-phone', 'field-email', 'field-consent'];
+  var FIELDS = ['field-name', 'field-birth', 'field-phone', 'field-telegram', 'field-consent'];
   var consentField = document.getElementById('field-consent');
   var honeypot = document.getElementById('field-website');
 
@@ -91,20 +105,40 @@
   });
 
   /* ---------- Валидация ---------- */
+  /* Дата дд/мм/гггг → проверка реальности даты (поле необязательное) */
+  function checkBirth(value) {
+    if (!value) return true;
+    var m = /^(\d{2})\/(\d{2})\/(\d{4})$/.exec(value);
+    if (!m) return false;
+    var d = parseInt(m[1], 10), mo = parseInt(m[2], 10), y = parseInt(m[3], 10);
+    if (mo < 1 || mo > 12) return false;
+    if (d < 1 || d > 31) return false;
+    if (y < 1900 || y > 2100) return false;
+    var daysInMonth = new Date(y, mo, 0).getDate();
+    return d <= daysInMonth;
+  }
+
   function validate() {
     var ok = true;
     var name = document.getElementById('field-name').value.trim();
-    var birth = document.getElementById('field-birth').value.trim();
+    var birthRaw = document.getElementById('field-birth').value.trim();
     var phone = document.getElementById('field-phone').value.trim();
-    var email = document.getElementById('field-email').value.trim();
+    var telegram = document.getElementById('field-telegram').value.trim();
 
     ok = setError('field-name', name.length >= 2 ? '' : 'Пожалуйста, укажите имя') && ok;
-    ok = setError('field-birth', birth ? '' : 'Пожалуйста, укажите дату рождения') && ok;
+
+    // Дата рождения — необязательно. При маске пустое поле содержит
+    // подсказку «__/__/____», поэтому ориентируемся на наличие цифр.
+    var birthFilled = birthRaw.replace(/\D/g, '') !== '';
+    ok = setError('field-birth',
+      checkBirth(birthFilled ? birthRaw : '') ? '' : 'Укажите дату в формате дд/мм/гггг') && ok;
+
+    // Telegram — необязательно; если заполнен, проверяем имя пользователя
+    ok = setError('field-telegram',
+      (!telegram || /^@?[A-Za-z0-9_]{4,32}$/.test(telegram)) ? '' : 'Укажите имя пользователя Telegram, например @username') && ok;
 
     var digits = phone.replace(/\D/g, '');
     ok = setError('field-phone', digits.length >= 11 ? '' : 'Пожалуйста, укажите телефон полностью') && ok;
-    ok = setError('field-email',
-      /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email) ? '' : 'Пожалуйста, укажите корректную почту') && ok;
 
     var consentHolder = form.querySelector('[data-error-for="field-consent"]');
     if (consentHolder) {
@@ -137,9 +171,9 @@
     var text =
       'Новая заявка — Невидимые опоры\n' +
       'Имя: ' + payload.name + '\n' +
-      'Дата рождения: ' + payload.birth_date + '\n' +
+      'Дата рождения: ' + (payload.birth_date || '— не указана') + '\n' +
       'Телефон: ' + payload.phone + '\n' +
-      'Почта: ' + payload.email + '\n' +
+      'Telegram: ' + (payload.telegram || '— не указан') + '\n' +
       'Тариф: ' + payload.tariff + '\n' +
       'Дата заявки: ' + payload.created_at;
 
@@ -176,6 +210,7 @@
     if (honeypot && honeypot.value.trim() !== '') {
       form.reset();
       if (phoneMask) phoneMask.value = '';
+      if (birthMask) birthMask.value = '';
       if (statusEl) {
         statusEl.classList.remove('error');
         statusEl.textContent = 'Спасибо! Ваша заявка отправлена — я свяжусь с вами.';
@@ -195,9 +230,12 @@
     var payload = {
       id: 'ord_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 8),
       name: document.getElementById('field-name').value.trim(),
-      birth_date: document.getElementById('field-birth').value,
+      birth_date: (function () {
+        var v = document.getElementById('field-birth').value.trim();
+        return v.replace(/\D/g, '') !== '' ? v : '';
+      })(),
       phone: document.getElementById('field-phone').value.trim(),
-      email: document.getElementById('field-email').value.trim(),
+      telegram: document.getElementById('field-telegram').value.trim(),
       tariff: tariffSelect ? tariffSelect.value : '',
       created_at: new Date().toISOString()
     };
@@ -250,6 +288,7 @@
 
         form.reset();
         if (phoneMask) phoneMask.value = '';
+        if (birthMask) birthMask.value = '';
         FIELDS.forEach(function (id) { setError(id, ''); });
         if (statusEl) {
           statusEl.classList.remove('error');
