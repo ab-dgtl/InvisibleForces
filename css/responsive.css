@@ -34,6 +34,7 @@
   .order-form { grid-template-columns: 1fr; padding: 1.5rem 1.2rem; gap: 1rem; }
   .field:last-of-type { grid-column: auto; }
   .form-submit { grid-column: auto; width: 100%; padding-inline: 1.5rem; }
+  .consent-row, .consent-error { grid-column: auto; }
 
   .btn { width: 100%; }
   .tariff-cta { align-self: stretch; }

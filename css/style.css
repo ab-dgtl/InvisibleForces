@@ -773,6 +773,64 @@ p { margin: 0 0 1.1em; }
 
 .form-submit { grid-column: 1 / -1; justify-self: center; margin-top: 0.6rem; padding-inline: 3rem; }
 
+/* ---------- Honeypot (ловушка для ботов) ---------- */
+.hp-field {
+  position: absolute !important;
+  left: -9999px !important;
+  top: auto !important;
+  width: 1px !important;
+  height: 1px !important;
+  overflow: hidden !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+}
+
+/* ---------- Согласие на обработку ПД ---------- */
+.consent-row {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  cursor: pointer;
+  font-size: 0.86rem;
+  line-height: 1.5;
+  color: var(--text-soft);
+}
+.consent-row input[type="checkbox"] {
+  flex: 0 0 auto;
+  width: 17px;
+  height: 17px;
+  margin-top: 0.2rem;
+  accent-color: var(--gold-500);
+  cursor: pointer;
+}
+.consent-row a { color: var(--gold-300); text-decoration: underline; text-underline-offset: 2px; }
+.consent-row a:hover { color: var(--gold-100); }
+.consent-error { grid-column: 1 / -1; margin-top: -0.6rem; }
+
+/* ===========================================================
+   СТРАНИЦА ПОЛИТИКИ КОНФИДЕНЦИАЛЬНОСТИ
+   =========================================================== */
+.legal-section { padding-top: clamp(2.6rem, 2rem + 3vw, 4.5rem); }
+
+.legal h2 {
+  font-size: clamp(1.2rem, 1.05rem + 0.6vw, 1.55rem);
+  color: var(--gold-300);
+  margin: 2.4rem 0 0.8rem;
+}
+.legal h2:first-child { margin-top: 0; }
+.legal p, .legal li { color: var(--text-soft); }
+.legal ul { margin: 0 0 1.1em; padding-left: 1.3rem; }
+.legal li { margin-bottom: 0.4rem; }
+.legal-date {
+  margin-top: 2.6rem;
+  font-size: 0.84rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+.legal-back { margin-top: 2.6rem; text-align: center; }
+
 .form-status {
   grid-column: 1 / -1;
   margin: 0;
