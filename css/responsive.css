@@ -45,7 +45,9 @@
 }
 
 @media (max-width: 400px) {
-  .eyebrow { letter-spacing: 0.22em; font-size: 0.72rem; }
+  /* Мелкий только для обычных надписей-eyebrow.
+     Крупные заголовки блоков (.eyebrow-lg) не трогаем. */
+  .eyebrow:not(.eyebrow-lg) { letter-spacing: 0.22em; font-size: 0.72rem; }
   .tariff-flag { right: 1rem; }
 }
 
