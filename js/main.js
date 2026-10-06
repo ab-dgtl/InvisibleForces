@@ -202,6 +202,13 @@
     });
   }
 
+  var paymentLinks = {
+    'Silver — 3 500 р': 'https://link.payform.ru/?paymentLinkId=ab5074df-54cc-4417-8ee7-40da778a4eec',
+    'Gold — 15 000 р': 'https://link.payform.ru/?paymentLinkId=47766fb9-0e86-4da1-85f3-718eb51d43fa',
+    '12 сфер жизни — 7500 руб': 'https://link.payform.ru/?paymentLinkId=78c28127-ff1a-45f4-a2a9-d4038a21f13b',
+    '12 карт 12 месяцев — 7500 руб': 'https://link.payform.ru/?paymentLinkId=c49b52d2-ccf9-4541-8b0d-8f349b308fa3'
+  };
+
   /* ---------- Отправка формы ---------- */
   form.addEventListener('submit', function (event) {
     event.preventDefault();
@@ -239,6 +246,16 @@
       tariff: tariffSelect ? tariffSelect.value : '',
       created_at: new Date().toISOString()
     };
+
+    var paymentUrl = Object.prototype.hasOwnProperty.call(paymentLinks, payload.tariff)
+      ? paymentLinks[payload.tariff] : null;
+    if (!paymentUrl) {
+      if (statusEl) {
+        statusEl.classList.add('error');
+        statusEl.textContent = 'Пожалуйста, выберите тариф из списка.';
+      }
+      return;
+    }
 
     if (submitBtn) { submitBtn.disabled = true; submitBtn.textContent = 'Отправляем…'; }
     if (statusEl) { statusEl.textContent = ''; statusEl.classList.remove('error'); }
@@ -294,7 +311,7 @@
           statusEl.classList.remove('error');
           statusEl.textContent = 'Заявка отправлена. Переходим к оплате…';
         }
-        window.location.assign('https://nevidimie-opori.payform.ru');
+        window.location.assign(paymentUrl);
       })
       .finally(function () {
         if (submitBtn) { submitBtn.disabled = false; submitBtn.textContent = 'Перейти к оплате'; }
