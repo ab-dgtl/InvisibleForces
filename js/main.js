@@ -292,11 +292,12 @@
         FIELDS.forEach(function (id) { setError(id, ''); });
         if (statusEl) {
           statusEl.classList.remove('error');
-          statusEl.textContent = 'Спасибо! Ваша заявка отправлена — я свяжусь с вами.';
+          statusEl.textContent = 'Заявка отправлена. Переходим к оплате…';
         }
+        window.location.assign('https://nevidimie-opori.payform.ru');
       })
       .finally(function () {
-        if (submitBtn) { submitBtn.disabled = false; submitBtn.textContent = 'Отправить заявку'; }
+        if (submitBtn) { submitBtn.disabled = false; submitBtn.textContent = 'Перейти к оплате'; }
       });
   });
 })();
