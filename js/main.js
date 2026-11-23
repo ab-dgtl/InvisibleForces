@@ -8,11 +8,6 @@
   var yearEl = document.getElementById('footer-year');
   if (yearEl) yearEl.textContent = new Date().getFullYear();
 
-  /* ---------- Год публикации политики ---------- */
-  var legalDateEl = document.getElementById('legal-date');
-  if (legalDateEl) {
-    legalDateEl.textContent = '01.01.' + new Date().getFullYear();
-  }
 
   /* ---------- Появление блоков при прокрутке ---------- */
   var revealEls = Array.prototype.slice.call(document.querySelectorAll('.reveal'));
@@ -69,6 +64,18 @@
   var FIELDS = ['field-name', 'field-birth', 'field-phone', 'field-telegram', 'field-consent'];
   var consentField = document.getElementById('field-consent');
   var honeypot = document.getElementById('field-website');
+  var submitting = false;
+  var accepted = false;
+  var lastAttempt = null;
+
+  window.addEventListener('pageshow', function (event) {
+    if (!event.persisted || !accepted) return;
+    accepted = false;
+    submitting = false;
+    var button = form.querySelector('.form-submit');
+    if (button) { button.disabled = false; button.textContent = 'Перейти к оплате'; }
+    if (statusEl) statusEl.textContent = 'Заявка уже принята. Можно вернуться к оплате.';
+  });
 
   function setError(id, message) {
     var input = document.getElementById(id);
@@ -115,7 +122,9 @@
     if (d < 1 || d > 31) return false;
     if (y < 1900 || y > 2100) return false;
     var daysInMonth = new Date(y, mo, 0).getDate();
-    return d <= daysInMonth;
+    var today = new Date();
+    today.setHours(0, 0, 0, 0);
+    return d <= daysInMonth && new Date(y, mo - 1, d) <= today;
   }
 
   function validate() {
@@ -125,7 +134,9 @@
     var phone = document.getElementById('field-phone').value.trim();
     var telegram = document.getElementById('field-telegram').value.trim();
 
-    ok = setError('field-name', name.length >= 2 ? '' : 'Пожалуйста, укажите имя') && ok;
+    var nameValid = name.length >= 2 && name.length <= 100 && /\p{L}/u.test(name) &&
+      /^[\p{L}\p{M}][\p{L}\p{M} .'’\-]*$/u.test(name);
+    ok = setError('field-name', nameValid ? '' : 'Укажите имя буквами, от 2 до 100 символов') && ok;
 
     // Дата рождения — необязательно. При маске пустое поле содержит
     // подсказку «__/__/____», поэтому ориентируемся на наличие цифр.
@@ -138,17 +149,14 @@
       (!telegram || /^@?[A-Za-z0-9_]{4,32}$/.test(telegram)) ? '' : 'Укажите имя пользователя Telegram, например @username') && ok;
 
     var digits = phone.replace(/\D/g, '');
-    ok = setError('field-phone', digits.length >= 11 ? '' : 'Пожалуйста, укажите телефон полностью') && ok;
+    var phoneValid = phone.length <= 25 && /^[+\d ()\-]+$/.test(phone) &&
+      /^[78]\d{10}$/.test(digits) && !/^(\d)\1{9}$/.test(digits.slice(1));
+    ok = setError('field-phone', phoneValid ? '' : 'Укажите корректный телефон полностью') && ok;
 
     var consentHolder = form.querySelector('[data-error-for="field-consent"]');
-    if (consentHolder) {
-      if (consentField && !consentField.checked) {
-        consentHolder.textContent = 'Необходимо согласие на обработку персональных данных';
-        ok = false;
-      } else {
-        consentHolder.textContent = '';
-      }
-    }
+    var hasConsent = Boolean(consentField && consentField.checked);
+    if (consentHolder) consentHolder.textContent = hasConsent ? '' : 'Необходимо согласие на обработку персональных данных';
+    ok = hasConsent && ok;
 
     return ok;
   }
@@ -163,10 +171,22 @@
     });
   });
 
-  /* ---------- Отправка уведомления в Telegram ---------- */
-  function sendToTelegram(payload) {
+  /* ---------- Передача заявки в Make (не подтверждение оплаты) ---------- */
+  function sendApplication(payload) {
     var cfg = (window.SITE_CONFIG && window.SITE_CONFIG.telegram) || {};
-    if (!cfg.enabled) return Promise.resolve({ ok: false, skipped: true });
+    var url;
+    try {
+      url = new URL(cfg.webhookUrl);
+      if (!cfg.enabled || url.protocol !== 'https:' || url.hostname !== 'hook.eu2.make.com' ||
+          url.port || url.username || url.password || url.pathname === '/') {
+        throw new Error('Invalid application endpoint');
+      }
+    } catch (err) {
+      return Promise.reject(new Error('Application endpoint is not configured'));
+    }
+    if (typeof AbortController === 'undefined') {
+      return Promise.reject(new Error('Browser does not support request timeout'));
+    }
 
     var text =
       'Новая заявка — Невидимые опоры\n' +
@@ -177,28 +197,34 @@
       'Тариф: ' + payload.tariff + '\n' +
       'Дата заявки: ' + payload.created_at;
 
-    var url = '';
-    if (cfg.webhookUrl) {
-      // Вариант 1 (рекомендуется): вебхук / сервис-посредник
-      url = cfg.webhookUrl;
-    } else if (cfg.botToken && cfg.chatId) {
-      // Вариант 2: напрямую через Bot API (токен виден в исходном коде)
-      url = 'https://api.telegram.org/bot' + cfg.botToken + '/sendMessage';
-    } else {
-      return Promise.resolve({ ok: false, misconfigured: true });
+    var controller = new AbortController();
+    var timeout = setTimeout(function () { controller.abort(); }, 15000);
+    // Keep text + data compatible with the existing Make mapping.
+    // The receiver must validate data and use a fixed Telegram recipient.
+    var request;
+    try {
+      request = fetch(url.href, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        signal: controller.signal,
+        credentials: 'omit',
+        referrerPolicy: 'no-referrer',
+        body: JSON.stringify({
+          text: text,
+          disable_web_page_preview: true,
+          data: payload
+        })
+      });
+    } catch (err) {
+      clearTimeout(timeout);
+      return Promise.reject(err);
     }
-
-    return fetch(url, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        chat_id: cfg.chatId || '',
-        text: text,
-        disable_web_page_preview: true,
-        data: payload
-      })
-    }).then(function (res) {
-      return { ok: res.ok, status: res.status };
+    return request.then(function (res) {
+      if (!res.ok) throw new Error('Application endpoint rejected request');
+      // A 2xx from Make acknowledges acceptance, not Telegram delivery.
+      return { accepted: true };
+    }).finally(function () {
+      clearTimeout(timeout);
     });
   }
 
@@ -212,15 +238,13 @@
   /* ---------- Отправка формы ---------- */
   form.addEventListener('submit', function (event) {
     event.preventDefault();
+    if (submitting || accepted) return;
 
-    // Honeypot: скрытое поле заполнено — это бот. Тихо «принимаем» заявку.
+    // Autofill can fill the trap too: do not claim success or discard data.
     if (honeypot && honeypot.value.trim() !== '') {
-      form.reset();
-      if (phoneMask) phoneMask.value = '';
-      if (birthMask) birthMask.value = '';
       if (statusEl) {
-        statusEl.classList.remove('error');
-        statusEl.textContent = 'Спасибо! Ваша заявка отправлена — я свяжусь с вами.';
+        statusEl.classList.add('error');
+        statusEl.textContent = 'Заявка не отправлена. Отключите автозаполнение и обновите страницу.';
       }
       return;
     }
@@ -244,7 +268,10 @@
       phone: document.getElementById('field-phone').value.trim(),
       telegram: document.getElementById('field-telegram').value.trim(),
       tariff: tariffSelect ? tariffSelect.value : '',
-      created_at: new Date().toISOString()
+      created_at: new Date().toISOString(),
+      consent: true,
+      website: '',
+      schema_version: 1
     };
 
     var paymentUrl = Object.prototype.hasOwnProperty.call(paymentLinks, payload.tariff)
@@ -257,64 +284,44 @@
       return;
     }
 
+    // Preserve the id for a retry of unchanged data. Server-side deduplication
+    // is still required: a network error does not prove non-delivery.
+    var signature = JSON.stringify([payload.name, payload.birth_date, payload.phone, payload.telegram, payload.tariff]);
+    if (lastAttempt && lastAttempt.signature === signature) {
+      payload.id = lastAttempt.id;
+      payload.created_at = lastAttempt.created_at;
+      if (lastAttempt.accepted) {
+        accepted = true;
+        window.location.assign(paymentUrl);
+        return;
+      }
+    } else {
+      lastAttempt = { signature: signature, id: payload.id, created_at: payload.created_at };
+    }
+
+    submitting = true;
     if (submitBtn) { submitBtn.disabled = true; submitBtn.textContent = 'Отправляем…'; }
     if (statusEl) { statusEl.textContent = ''; statusEl.classList.remove('error'); }
 
-    var saveToTable = fetch('tables/orders', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload)
-    }).then(function (res) {
-      if (!res.ok) throw new Error('HTTP ' + res.status);
-      return res.json();
-    }).then(function (data) {
-      return { table: true };
-    }).catch(function (err) {
-      // Таблица недоступна — не теряем заявку, полагаемся на вебхук
-      if (window.console && console.warn) {
-        console.warn('[Заявка] Не сохранено в таблицу:', err.message);
-      }
-      return { table: false };
-    });
-
-    var sendWebhook = sendToTelegram(payload).then(function (res) {
-      // Вебхук ответил, но HTTP-статус мог быть ошибочным
-      if (res && res.ok === false) throw new Error('HTTP ' + res.status);
-      return { telegram: true };
-    }).catch(function (err) {
-      if (window.console && console.warn) {
-        console.warn('[Заявка] Не отправлено в Telegram:', err.message);
-      }
-      return { telegram: false };
-    });
-
-    // Заявка считается принятой, если сработал хотя бы один канал:
-    // сохранение в таблицу ИЛИ уведомление в Telegram.
-    Promise.all([saveToTable, sendWebhook])
-      .then(function (results) {
-        var saved = results[0].table;
-        var sent = results[1].telegram;
-
-        if (!saved && !sent) {
-          if (statusEl) {
-            statusEl.classList.add('error');
-            statusEl.textContent = 'Не удалось отправить заявку. Пожалуйста, попробуйте ещё раз.';
-          }
-          return;
-        }
-
-        form.reset();
-        if (phoneMask) phoneMask.value = '';
-        if (birthMask) birthMask.value = '';
-        FIELDS.forEach(function (id) { setError(id, ''); });
+    sendApplication(payload)
+      .then(function () {
+        accepted = true;
+        lastAttempt.accepted = true;
         if (statusEl) {
           statusEl.classList.remove('error');
-          statusEl.textContent = 'Заявка отправлена. Переходим к оплате…';
+          statusEl.textContent = 'Заявка принята сервисом. Переходим к оплате…';
         }
         window.location.assign(paymentUrl);
       })
+      .catch(function () {
+        if (statusEl) {
+          statusEl.classList.add('error');
+          statusEl.textContent = 'Не удалось подтвердить приём заявки. Данные сохранены в форме. Проверьте соединение и повторите попытку.';
+        }
+      })
       .finally(function () {
-        if (submitBtn) { submitBtn.disabled = false; submitBtn.textContent = 'Перейти к оплате'; }
+        submitting = false;
+        if (submitBtn && !accepted) { submitBtn.disabled = false; submitBtn.textContent = 'Перейти к оплате'; }
       });
   });
 })();
